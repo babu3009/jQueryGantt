@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2012-2013 Open Lab
+ Copyright (c) 2012-2014 Open Lab
  Written by Roberto Bicchierai and Silvia Chelazzi http://roberto.open-lab.com
  Permission is hereby granted, free of charge, to any person obtaining
  a copy of this software and associated documentation files (the
@@ -75,7 +75,7 @@ GridEditor.prototype.fillEmptyLines = function () {
 };
 
 
-GridEditor.prototype.addTask = function (task, row) {
+GridEditor.prototype.addTask = function (task, row, hideIfParentCollapsed) {
   //console.debug("GridEditor.addTask",task,row);
   //var prof = new Profiler("editorAddTaskHtml");
 
@@ -108,9 +108,39 @@ GridEditor.prototype.addTask = function (task, row) {
   });
   //prof.stop();
 
+
+  //[expand]
+  if(hideIfParentCollapsed)
+  {
+    if(task.collapsed) taskRow.find(".exp-controller").removeClass('exp');
+    var collapsedDescendant = this.master.getCollapsedDescendant();
+    if(collapsedDescendant.indexOf(task) >= 0) taskRow.hide();
+  }
+          
+
   return taskRow;
 };
 
+GridEditor.prototype.refreshExpandStatus = function(task){
+  if(!task) return;
+  //[expand]
+  var child = task.getChildren();
+  if(child.length > 0 && task.rowElement.has(".expcoll").length == 0)
+  {
+    task.rowElement.find(".exp-controller").addClass('expcoll exp');
+  }
+  else if(child.length == 0 && task.rowElement.has(".expcoll").length > 0)
+  {
+    task.rowElement.find(".exp-controller").removeClass('expcoll exp');
+  }
+
+  var par = task.getParent();
+  if(par && par.rowElement.has(".expcoll").length == 0)
+  {
+    par.rowElement.find(".exp-controller").addClass('expcoll exp');
+  }
+
+}
 
 GridEditor.prototype.refreshTaskRow = function (task) {
   //console.debug("refreshTaskRow")
@@ -118,7 +148,7 @@ GridEditor.prototype.refreshTaskRow = function (task) {
   var row = task.rowElement;
 
   row.find(".taskRowIndex").html(task.getRow() + 1);
-  row.find(".indentCell").css("padding-left", task.level * 10);
+  row.find(".indentCell").css("padding-left", task.level * 16 + 12);
   row.find("[name=name]").val(task.name);
   row.find("[name=code]").val(task.code);
   row.find("[status]").attr("status", task.status);
@@ -145,18 +175,49 @@ GridEditor.prototype.reset = function () {
 
 GridEditor.prototype.bindRowEvents = function (task, taskRow) {
   var self = this;
-  //console.debug("bindRowEvents",this,this.master,this.master.canWrite);
-  if (this.master.canWrite) {
+  //console.debug("bindRowEvents",this,this.master,this.master.canWrite, task.canWrite);
+  if (this.master.canWrite && task.canWrite ) {
     self.bindRowInputEvents(task, taskRow);
 
   } else { //cannot write: disable input
     taskRow.find("input").attr("readonly", true);
   }
 
-  taskRow.find(".edit").click(function () {self.openFullEditor(task, taskRow)});
+  self.bindRowExpandEvents(task, taskRow);
 
+  taskRow.find(".edit").click(function () {self.openFullEditor(task, taskRow)});
 };
 
+
+GridEditor.prototype.bindRowExpandEvents = function (task, taskRow) {
+  var self = this;
+  //expand collapse
+   taskRow.find(".exp-controller").click(function(){
+   //expand?
+     var el=$(this);
+     var taskId=el.closest("[taskId]").attr("taskId");
+     var task=self.master.getTask(taskId);
+     var descs=task.getDescendant();
+     el.toggleClass('exp');
+     task.collapsed = !el.is(".exp");
+    var collapsedDescendant = self.master.getCollapsedDescendant();
+
+     if (el.is(".exp")){
+        for (var i=0;i<descs.length;i++)
+        {
+          var childTask = descs[i];
+          if(collapsedDescendant.indexOf(childTask) >= 0) continue;
+          childTask.rowElement.show();
+        }
+
+     } else {
+        for (var i=0;i<descs.length;i++)
+        descs[i].rowElement.hide();
+     }
+     self.master.gantt.refreshGantt();
+
+   });
+}
 
 GridEditor.prototype.bindRowInputEvents = function (task, taskRow) {
   var self = this;
@@ -207,12 +268,11 @@ GridEditor.prototype.bindRowInputEvents = function (task, taskRow) {
             self.master.endTransaction();
 
           } else {
-            var end_as_date = new Date(date.getTime());
-            lend = end_as_date.getTime();
+            lend = date.getTime();
             if (lstart >= lend) {
-              end_as_date.add('d', -1 * task.duration);
-              lstart = end_as_date.getTime();
+              lend=lstart;
             }
+            lend=lend+3600000*20; // this 20 hours are mandatory to reach the correct day end (snap to grid)
 
             //update task from editor
             self.master.beginTransaction();
@@ -266,8 +326,7 @@ GridEditor.prototype.bindRowInputEvents = function (task, taskRow) {
               if (!sups[i].from.synchronizeStatus())
                 break;
             }
-
-            self.master.changeTaskDates(task, task.start, task.end);
+            self.master.changeTaskDates(task, task.start, task.end); // fake change to force date recomputation from dependencies
           }
 
         } else if (field == "duration") {
@@ -277,6 +336,9 @@ GridEditor.prototype.bindRowInputEvents = function (task, taskRow) {
           var newEnd = computeEndByDuration(task.start, dur);
           self.master.changeTaskDates(task, task.start, newEnd);
 
+        } else if (field == "name" && el.val() == "") { // remove unfilled task
+            task.deleteTask();
+
         } else {
           task[field] = el.val();
         }
@@ -285,7 +347,7 @@ GridEditor.prototype.bindRowInputEvents = function (task, taskRow) {
     });
 
   //cursor key movement
-  taskRow.find("input").keyup(function (event) {
+  taskRow.find("input").keydown(function (event) {
     var theCell = $(this);
     var theTd = theCell.parent();
     var theRow = theTd.parent();
@@ -295,7 +357,13 @@ GridEditor.prototype.bindRowInputEvents = function (task, taskRow) {
     switch (event.keyCode) {
 
       case 37: //left arrow
-       break;
+        if(this.selectionEnd==0)
+          theTd.prev().find("input").focus();
+        break;
+      case 39: //right arrow
+        if(this.selectionEnd==this.value.length)
+          theTd.next().find("input").focus();
+        break;
 
       case 38: //up arrow
         var prevRow = theRow.prev();
@@ -321,7 +389,6 @@ GridEditor.prototype.bindRowInputEvents = function (task, taskRow) {
 
       case 9: //tab
        case 13: //enter
-       case 39: //right arrow
        break;
     }
     return ret;
@@ -333,51 +400,29 @@ GridEditor.prototype.bindRowInputEvents = function (task, taskRow) {
 
   //change status
   taskRow.find(".taskStatus").click(function () {
-
-    var initialOffset = 40;
-    var elementOffset = 30;
-    
     var el = $(this);
     var tr = el.closest("[taskId]");
     var taskId = tr.attr("taskId");
     var task = self.master.getTask(taskId);
 
     var changer = $.JST.createFromTemplate({}, "CHANGE_STATUS");
-    changer.css("top", self.master.editor.element.parent().scrollTop() + initialOffset + (elementOffset * task.rowElement.index()));
     changer.find("[status=" + task.status + "]").addClass("selected");
-    changer.find(".taskStatus").click(function () {
+    changer.find(".taskStatus").click(function (e) {
+      e.stopPropagation();
+      var newStatus = $(this).attr("status");
+      changer.remove();
       self.master.beginTransaction();
-      task.changeStatus($(this).attr("status"));
+      task.changeStatus(newStatus);
       self.master.endTransaction();
       el.attr("status", task.status);
-      changer.remove();
-      el.show();
-
     });
-    el.hide().oneTime(3000, "hideChanger", function () {
+    el.oneTime(3000, "hideChanger", function () {
       changer.remove();
-      $(this).show();
     });
     el.after(changer);
   });
 
 
-  /*//expand collapse todo to be completed
-   taskRow.find(".expcoll").click(function(){
-   //expand?
-   var el=$(this);
-   var taskId=el.closest("[taskId]").attr("taskId");
-   var task=self.master.getTask(taskId);
-   var descs=task.getDescendant();
-   if (el.is(".exp")){
-   for (var i=0;i<descs.length;i++)
-   descs[i].rowElement.show();
-   } else {
-   for (var i=0;i<descs.length;i++)
-   descs[i].rowElement.hide();
-   }
-
-   });*/
 
   //bind row selection
   taskRow.click(function () {
@@ -390,13 +435,14 @@ GridEditor.prototype.bindRowInputEvents = function (task, taskRow) {
     self.master.currentTask = self.master.getTask(row.attr("taskId"));
 
     //move highlighter
-    if (self.master.currentTask.ganttElement)
-      self.master.gantt.highlightBar.css("top", self.master.currentTask.ganttElement.position().top);
+    self.master.gantt.synchHighlight();
 
     //if offscreen scroll to element
     var top = row.position().top;
-    if (row.position().top > self.element.parent().height()) {
-      self.master.gantt.element.parent().scrollTop(row.position().top - self.element.parent().height() + 100);
+    if (top > self.element.parent().height()) {
+      row.offsetParent().scrollTop(top - self.element.parent().height() + 100);
+    } else if (top<40){
+      row.offsetParent().scrollTop(row.offsetParent().scrollTop()-40+top);
     }
   });
 
@@ -470,7 +516,7 @@ GridEditor.prototype.openFullEditor = function (task, taskRow) {
   }
 
 
-  if (!self.master.canWrite) {
+  if (!self.master.canWrite || !task.canWrite) {
     taskEditor.find("input,textarea").attr("readOnly", true);
     taskEditor.find("input:checkbox,select").attr("disabled", true);
   } else {
@@ -528,19 +574,18 @@ GridEditor.prototype.openFullEditor = function (task, taskRow) {
     taskEditor.find("#status").click(function () {
       var tskStatusChooser = $(this);
       var changer = $.JST.createFromTemplate({}, "CHANGE_STATUS");
-      changer.css("top", tskStatusChooser.position().top);
       changer.find("[status=" + task.status + "]").addClass("selected");
-      changer.find(".taskStatus").click(function () {
+      changer.find(".taskStatus").click(function (e) {
+        e.stopPropagation();
         tskStatusChooser.attr("status", $(this).attr("status"));
         changer.remove();
-        tskStatusChooser.show();
       });
-      tskStatusChooser.hide().oneTime(3000, "hideChanger", function () {
+      tskStatusChooser.oneTime(3000, "hideChanger", function () {
         changer.remove();
-        $(this).show();
       });
       tskStatusChooser.after(changer);
     });
+
 
     //save task
     taskEditor.find("#saveButton").click(function () {

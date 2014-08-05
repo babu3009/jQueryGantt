@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2012-2013 Open Lab
+  Copyright (c) 2012-2014 Open Lab
   Written by Roberto Bicchierai and Silvia Chelazzi http://roberto.open-lab.com
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
@@ -23,7 +23,7 @@
 
 $.gridify = function (table, opt) {
   var options = {
-    colResizeZoneWidth:10
+    resizeZoneWidth:10
   };
 
   $.extend(options, opt);
@@ -65,7 +65,7 @@ $.gridify = function (table, opt) {
         var colHeader = $(this);
         var mousePos = e.pageX - colHeader.offset().left;
 
-        if (colHeader.width() - mousePos < options.colResizeZoneWidth) {
+        if (colHeader.width() - mousePos < options.resizeZoneWidth) {
           $("body").addClass("gdfHResizing");
         } else {
           $("body").removeClass("gdfHResizing");
@@ -75,7 +75,7 @@ $.gridify = function (table, opt) {
     }).bind("mousedown.gdf",function (e) {
       var colHeader = $(this);
       var mousePos = e.pageX - colHeader.offset().left;
-      if (colHeader.width() - mousePos < options.colResizeZoneWidth) {
+      if (colHeader.width() - mousePos < options.resizeZoneWidth) {
         $("body").unselectable();
         $.gridify.columInResize = $(this);
         //bind event for start resizing
@@ -119,19 +119,21 @@ $.splittify = {
 
     perc=perc || 50;
 
-    var splitter = $("<div>").addClass("splitterContainer");
-
+    var element = $("<div>").addClass("splitterContainer");
     var firstBox = $("<div>").addClass("splitElement splitBox1");
     var splitterBar = $("<div>").addClass("splitElement vSplitBar").attr("unselectable", "on").html("|").css("padding-top",where.height()/2+"px");
     var secondBox = $("<div>").addClass("splitElement splitBox2");
+
+    var splitter= new Splitter(element,firstBox,secondBox,splitterBar);
+    splitter.perc=perc;
 
 
     firstBox.append(first);
     secondBox.append(second);
 
-    splitter.append(firstBox).append(secondBox).append(splitterBar);
+    element.append(firstBox).append(secondBox).append(splitterBar);
 
-    where.append(splitter);
+    where.append(element);
 
     var w = where.innerWidth();
     var fbw = w *perc/ 100 - splitterBar.width();
@@ -140,6 +142,7 @@ $.splittify = {
     firstBox.width(fbw).css({left:0});
     splitterBar.css({left:firstBox.width()});
     secondBox.width(w -fbw-splitterBar.width() ).css({left:firstBox.width() + splitterBar.width()});
+
 
     splitterBar.bind("mousedown.gdf", function(e) {
       $.splittify.splitterBar = $(this);
@@ -152,12 +155,13 @@ $.splittify = {
         var sb = $.splittify.splitterBar;
         var pos = e.pageX - sb.parent().offset().left;
         var w = sb.parent().width();
-        var fbw=firstBox
+        var fbw=firstBox;
         if (pos > 10 && pos < realW) {
           sb.css({left:pos});
           firstBox.width(pos);
           secondBox.css({left:pos + sb.width(),width:w - pos - sb.width()});
         }
+        splitter.perc=(firstBox.width()/splitter.element.width())*100;
 
         //bind mouse up on body to stop resizing
       }).bind("mouseup.gdf", function() {
@@ -168,16 +172,59 @@ $.splittify = {
       });
     });
 
-    return {firstBox:firstBox,secondBox:secondBox,splitterBar:splitterBar};
 
+    // keep both side in synch when scroll
+    var stopScroll=false;
+    var fs=firstBox.add(secondBox);
+    fs.scroll(function(e) {
+      var el = $(this);
+      var top = el.scrollTop();
+      if (el.is(".splitBox1") && stopScroll!="splitBox2"){
+        stopScroll="splitBox1";
+        secondBox.scrollTop(top);
+      }else if (el.is(".splitBox2") && stopScroll!="splitBox1"){
+        stopScroll="splitBox2";
+        firstBox.scrollTop(top);
+      }
+      secondBox.find(".fixHead").css('top', top);
+      firstBox.find(".fixHead").css('top', top);
+
+      where.stopTime("reset").oneTime(100,"reset",function(){stopScroll="";})
+    });
+
+
+
+    function Splitter(element,firstBox, secondBox, splitterBar) {
+      this.element=element;
+      this.firstBox = firstBox;
+      this.secondBox = secondBox;
+      this.splitterBar = splitterBar;
+      this.perc=0;
+
+      this.resize=function(){
+        var totW=this.element.width();
+        var realW=this.firstBox.get(0).scrollWidth;
+        var newW=totW*this.perc/100;
+        newW=newW<realW?newW:realW;
+        this.firstBox.css({width:newW});
+        this.splitterBar.css({left:newW});
+        this.secondBox.css({left:newW + this.splitterBar.width(),width:totW - newW - this.splitterBar.width()});
+      }
+    }
+
+    return splitter;
   }
 };
 
 
 
 
+
 //<%------------------------------------------------------------------------  UTILITIES ---------------------------------------------------------------%>
   function computeStart(start) {
+    return computeStartDate(start).getTime();
+  }
+  function computeStartDate(start) {
     var d = new Date(start+3600000*12);
     d.setHours(0, 0, 0, 0);
     //move to next working day
@@ -185,10 +232,13 @@ $.splittify = {
       d.setDate(d.getDate() + 1);
     } 
     d.setHours(0, 0, 0, 0);
-    return d.getTime();
+    return d;
   }
 
   function computeEnd(end) {
+    return computeEndDate(end).getTime()
+  }
+  function computeEndDate(end) {
     var d = new Date(end-3600000*12);
     d.setHours(23, 59, 59, 999);
     //move to next working day
@@ -196,7 +246,7 @@ $.splittify = {
       d.setDate(d.getDate() + 1);
     }
     d.setHours(23, 59, 59, 999);
-    return d.getTime();
+    return d;
   }
 
   function computeEndByDuration(start, duration) {

@@ -18,6 +18,10 @@
   padding:4px 2px
 }
 
+.gdfCell.noClip{
+  overflow: visible;
+}
+
 .gdfColHeader {
   min-width: 5px;
   height: 30px;
@@ -134,10 +138,12 @@
 .ganttButtonBar{
   position:relative;
   padding:5px;
+  height:55px;
 }
 
-.ganttButtonBar .buttons {
-    float:left; margin:45px 0 0 40px
+.ganttButtonBar .buttons, .ganttButtonBar h1 {
+  display:inline-block;
+  margin:0px 0 0 10px;
 }
 
 
@@ -180,22 +186,22 @@
 
 /* -------------------------------------- TASK -----------------------------------*/
 
-.taskBox{
+.taskBoxDiv{
   position:absolute;
   height:25px;
   margin-top:3px;
   z-index:100;
 }
 
-.taskBox .layout {
+.taskBoxDiv .layout {
   height:100%;
-  color:red;
+  color:#DB2727;
   border-radius:2px;
   background: #eee; /* Old browsers */
   border:1px solid #bbb;
 }
 
-.taskBox .taskStatus {
+.taskBoxDiv .taskStatus {
     left:5px;
     top:10px;
     position:absolute;
@@ -203,32 +209,32 @@
     height:10px;
 }
 
-.taskBox .layout .milestone{
+.taskBoxDiv .layout .milestone{
   top:0px;
   position:absolute;
   width:18px;
-  background: url(milestone.png) no-repeat;
+  background: url(res/milestone.png) no-repeat;
   height:18px;
   display:none;
 }
-.taskBox .layout .milestone.end{
+.taskBoxDiv .layout .milestone.end{
   right:0;
 }
-.taskBox .layout .milestone.active{
+.taskBoxDiv .layout .milestone.active{
   display:block;
 }
 
-.taskBox.hasChild .layout{
+.taskBoxDiv.hasChild .layout{
   border-top:2px solid black;
 }
 
-.taskBox .taskProgress{
+.taskBoxDiv .taskProgress{
   height:5px;
   position:absolute;
 }
 
-.taskBox .layout.extDep{
-  background-image:url(hasExternalDeps.png);
+.taskBoxDiv .layout.extDep{
+  background-image:url(res/hasExternalDeps.png);
 }
 
 
@@ -280,17 +286,21 @@ input[readonly]{
   height:24px;
   border:1px solid #a0a0a0;
   background-color:#fff;
-  margin-top:2px;
-  margin-left:-1px;
-  padding: 2px
+  margin-top:-21px;
+  margin-left:-2px;
+  padding: 3px;
+  z-index: 100;
 }
 .taskStatus{
   width:15px;
   height:15px;
   display:inline-block;
+  text-indent: 0;
+  position:relative;
 }
+
 .taskStatus[status=STATUS_ACTIVE]{
- background-color: #66FF99;
+ background-color: #3BBF67;
 }
 .taskStatus[status=STATUS_DONE]{
  background-color: #0099FF;
@@ -313,7 +323,6 @@ input[readonly]{
 }
 
 
-
 .unselectable {
   -webkit-user-select: none;
   -khtml-user-select: none;
@@ -322,17 +331,28 @@ input[readonly]{
   user-select: none;
 }
 
-.expcoll{
-  width:6px;
-  height:6px;
-  margin:1px;
-  padding:1px;
-  background-color:yellow;
-  display:inline-block;
-  border:1px solid gray;
+
+.exp-controller{
+
+  display: none;  
 }
+
+.expcoll{
+  display:inline-block;
+  cursor: pointer;
+  margin-left: -10px;
+  margin-right:2px;
+  width:16px;
+  height:16px;
+  background-image: url(res/toggle-expand.png);
+  position: relative;
+  top: 2px;
+}
+
+
+
 .expcoll.exp{
-  display:none;
+  background-image: url(res/toggle_collapse.png);
 }
 
 .ui-resizable-helper { border: 1px dotted #00F;  }
@@ -342,3 +362,115 @@ input[readonly]{
 }
 
 
+/*--------------------------------------------------- SVG --------------------------------------------------*/
+.ganttSVGBox{
+  position: absolute;
+  top:0;
+  left: 0;
+  height: 100%;
+  background-color: transparent;
+  width: 100%;
+}
+
+.taskBoxSVG{
+  overflow: visible;
+}
+
+.taskBoxSVG .taskLayout{
+  stroke-width:1px;
+  stroke:#bbb;
+  /*fill:url('#taskGrad'); do not work on firefox*/
+}
+
+.taskLinkPathSVG{
+  stroke:#9999ff;
+  stroke-width:3px;
+  fill:none;
+  cursor:pointer;
+}
+
+.ganttLinesSVG{
+  stroke:#eee;
+  stroke-width:1;
+}
+
+.ganttTodaySVG{
+  stroke-width:2px;
+  stroke:#13AFA5;
+  stroke-linecap:"round";
+  stroke-dasharray:2,2;
+}
+
+.taskStatusSVG[status=STATUS_ACTIVE]{
+  fill: #3BBF67;
+}
+.taskStatusSVG[status=STATUS_DONE]{
+  fill: #0099FF;
+}
+.taskStatusSVG[status=STATUS_FAILED]{
+  fill: #660066;
+}
+.taskStatusSVG[status=STATUS_SUSPENDED]{
+  fill: #fbb11e;
+}
+.taskStatusSVG[status=STATUS_UNDEFINED]{
+  fill: #ffffff;
+}
+
+.deSVG.deSVGdrag {
+  cursor: move;
+}
+.deSVG.deSVGhand {
+  cursor: ew-resize;
+}
+
+
+.linkHandleSVG{
+  display:none;
+  stroke:#888;
+  stroke-width:2px;
+  fill:#eee;
+  cursor: pointer;
+}
+
+.linkLineSVG{
+  stroke-width:5px;
+  stroke: #9999ff;
+  stroke-linecap:"round";
+  opacity: .5;
+    /*stroke-dasharray:5,5;*/
+}
+
+.linkOnProgress .deSVG.taskBoxSVG  {
+  cursor:cell;
+}
+
+.taskBoxSVG.linkOver .taskLayout{
+  stroke-width:5px;
+  stroke:#9999ff;
+  opacity: .5;
+}
+
+.taskLabelSVG {
+  stroke: none;
+  fill:#999;
+  font-size: 12px;
+}
+
+.critical .taskLinkPathSVG{
+  stroke:red;
+}
+
+.taskBoxSVG.critical .taskLayout{
+  stroke:red;
+}
+
+.focused .taskLinkPathSVG{
+  stroke-width:5px;
+  stroke: #4286ff;
+}
+
+.taskBoxSVG.focused .taskLayout{
+  stroke-width:3px;
+  stroke: #4286ff;
+}

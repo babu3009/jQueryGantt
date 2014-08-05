@@ -22,34 +22,44 @@
   <script src="libs/dateField/jquery.dateField.js"></script>
   <script src="libs/JST/jquery.JST.js"></script>
 
+  <link rel="stylesheet" type="text/css" href="libs/jquery.svg.css">
+  <script type="text/javascript" src="libs/jquery.svg.min.js"></script>
+
+  <!--In case of jquery 1.7-->
+  <!--<script type="text/javascript" src="libs/jquery.svgdom.pack.js"></script>-->
+
+  <!--In case of jquery 1.8-->
+  <script type="text/javascript" src="libs/jquery.svgdom.1.8.js"></script>
+
+
   <script src="ganttUtilities.js"></script>
   <script src="ganttTask.js"></script>
-  <script src="ganttDrawer.js"></script>
+  <script src="ganttDrawerSVG.js"></script>
+  <!--<script src="ganttDrawer.js"></script>-->
   <script src="ganttGridEditor.js"></script>
-  <script src="ganttMaster.js"></script>
-
+  <script src="ganttMaster.js"></script>  
 </head>
 <body style="background-color: #fff;">
 
 
 <div id="ndo" style="position:absolute;right:5px;top:5px;width:378px;padding:5px;background-color: #FFF5E6; border:1px solid #F9A22F; font-size:12px" class="noprint">
-  This Gantt can be used in a complete project management solution - imports your Gantt and more - <a href="http://twproject.com" target="_blank">Twproject: give it a try</a>.
+  This Gantt editor is free thanks to <a href="http://twproject.com" target="_blank">Twproject</a> where it can be used on a complete and flexible project management solution.<br> Get your projects done! Give <a href="http://twproject.com" target="_blank">Twproject a try now</a>.
 </div>
 <div id="workSpace" style="padding:0px; overflow-y:auto; overflow-x:hidden;border:1px solid #e5e5e5;position:relative;margin:0 5px"></div>
 
 <div id="taZone" style="display:none;" class="noprint">
-  <textarea rows="8" cols="150" id="ta">
+   <textarea rows="8" cols="150" id="ta">
     {"tasks":[
-    {"id":-1,"name":"Gantt editor","code":"","level":0,"status":"STATUS_ACTIVE","start":1346623200000,"duration":16,"end":1348523999999,"startIsMilestone":true,"endIsMilestone":false,"assigs":[]},
-    {"id":-2,"name":"coding","code":"","level":1,"status":"STATUS_ACTIVE","start":1346623200000,"duration":10,"end":1347659999999,"startIsMilestone":false,"endIsMilestone":false,"assigs":[],"description":"","progress":0},
-    {"id":-3,"name":"gant part","code":"","level":2,"status":"STATUS_ACTIVE","start":1346623200000,"duration":2,"end":1346795999999,"startIsMilestone":false,"endIsMilestone":false,"assigs":[],"depends":""},
-    {"id":-4,"name":"editor part","code":"","level":2,"status":"STATUS_SUSPENDED","start":1346796000000,"duration":4,"end":1347314399999,"startIsMilestone":false,"endIsMilestone":false,"assigs":[],"depends":"3"},
-    {"id":-5,"name":"testing","code":"","level":1,"status":"STATUS_SUSPENDED","start":1347832800000,"duration":6,"end":1348523999999,"startIsMilestone":false,"endIsMilestone":false,"assigs":[],"depends":"2:5","description":"","progress":0},
-    {"id":-6,"name":"test on safari","code":"","level":2,"status":"STATUS_SUSPENDED","start":1347832800000,"duration":2,"end":1348005599999,"startIsMilestone":false,"endIsMilestone":false,"assigs":[],"depends":""},
-    {"id":-7,"name":"test on ie","code":"","level":2,"status":"STATUS_SUSPENDED","start":1348005600000,"duration":3,"end":1348264799999,"startIsMilestone":false,"endIsMilestone":false,"assigs":[],"depends":"6"},
-    {"id":-8,"name":"test on chrome","code":"","level":2,"status":"STATUS_SUSPENDED","start":1348005600000,"duration":2,"end":1348178399999,"startIsMilestone":false,"endIsMilestone":false,"assigs":[],"depends":"6"}
-    ],"selectedRow":0,"deletedTaskIds":[],"canWrite":true,"canWriteOnParent":true }
-  </textarea>
+    {"id":-1,"name":"Gantt editor","code":"","level":0,"status":"STATUS_ACTIVE","canWrite":true,"start":1396994400000,"duration":21,"end":1399672799999,"startIsMilestone":true,"endIsMilestone":false,"collapsed":false,"assigs":[],"hasChild":true}
+    ,{"id":-2,"name":"coding","code":"","level":1,"status":"STATUS_ACTIVE","canWrite":true,"start":1396994400000,"duration":10,"end":1398203999999,"startIsMilestone":false,"endIsMilestone":false,"collapsed":false,"assigs":[],"description":"","progress":0,"hasChild":true}
+    ,{"id":-3,"name":"gantt part","code":"","level":2,"status":"STATUS_ACTIVE","canWrite":true,"start":1396994400000,"duration":2,"end":1397167199999,"startIsMilestone":false,"endIsMilestone":false,"collapsed":false,"assigs":[],"depends":"","hasChild":false}
+    ,{"id":-4,"name":"editor part","code":"","level":2,"status":"STATUS_SUSPENDED","canWrite":true,"start":1397167200000,"duration":4,"end":1397685599999,"startIsMilestone":false,"endIsMilestone":false,"collapsed":false,"assigs":[],"depends":"3","hasChild":false}
+    ,{"id":-5,"name":"testing","code":"","level":1,"status":"STATUS_SUSPENDED","canWrite":true,"start":1398981600000,"duration":6,"end":1399672799999,"startIsMilestone":false,"endIsMilestone":false,"collapsed":false,"assigs":[],"depends":"2:5","description":"","progress":0,"hasChild":true}
+    ,{"id":-6,"name":"test on safari","code":"","level":2,"status":"STATUS_SUSPENDED","canWrite":true,"start":1398981600000,"duration":2,"end":1399327199999,"startIsMilestone":false,"endIsMilestone":false,"collapsed":false,"assigs":[],"depends":"","hasChild":false}
+    ,{"id":-7,"name":"test on ie","code":"","level":2,"status":"STATUS_SUSPENDED","canWrite":true,"start":1399327200000,"duration":3,"end":1399586399999,"startIsMilestone":false,"endIsMilestone":false,"collapsed":false,"assigs":[],"depends":"6","hasChild":false}
+    ,{"id":-8,"name":"test on chrome","code":"","level":2,"status":"STATUS_SUSPENDED","canWrite":true,"start":1399327200000,"duration":2,"end":1399499999999,"startIsMilestone":false,"endIsMilestone":false,"collapsed":false,"assigs":[],"depends":"6","hasChild":false}
+    ],"selectedRow":0,"canWrite":true,"canWriteOnParent":true}  </textarea>
+
   <button onclick="loadGanttFromServer();">load</button>
 </div>
 
@@ -74,9 +84,8 @@
     font-weight: bold;
     font-size: 28px;
     margin-left: 10px;
-    margin-top: 15px;
-
   }
+
 </style>
 
 <form id="gimmeBack" style="display:none;" action="../gimmeBack.jsp" method="post" target="_blank"><input type="hidden" name="prj" id="gimBaPrj"></form>
@@ -98,9 +107,8 @@ $(function() {
   //inject some buttons (for this demo only)
   $(".ganttButtonBar div").append("<button onclick='clearGantt();' class='button'>clear</button>")
           .append("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
-          .append("<button onclick='openResourceEditor();' class='button'>edit resources</button>")
           .append("<button onclick='getFile();' class='button'>export</button>");
-  $(".ganttButtonBar h1").html("Twproject<br>jQuery Gantt");
+  $(".ganttButtonBar h1").html("<a href='http://twproject.com' title='Twproject the friendly project and work management tool' target='_blank'><img width='80%' src='res/twBanner.jpg'></a>");
   $(".ganttButtonBar div").addClass('buttons');
   //overwrite with localized ones
   loadI18n();
@@ -126,6 +134,12 @@ $(function() {
     var mill=Math.round(x/(ge.gantt.fx) + ge.gantt.startMillis)
     $("#ndo").html(x+" "+new Date(mill))
   });*/
+
+
+  $(window).resize(function(){
+    workSpace.css({width:$(window).width() - 20,height:$(window).height() - 100});
+    workSpace.trigger("resize.gantt");
+  })
 
 });
 
@@ -243,12 +257,17 @@ function setResource() {
 }
 
 
+function editResources(){
+
+}
+
 function clearGantt() {
   ge.reset();
 }
 
 function loadI18n() {
   GanttMaster.messages = {
+    "CANNOT_WRITE":                  "CANNOT_WRITE",
     "CHANGE_OUT_OF_SCOPE":"NO_RIGHTS_FOR_UPDATE_PARENTS_OUT_OF_EDITOR_SCOPE",
     "START_IS_MILESTONE":"START_IS_MILESTONE",
     "END_IS_MILESTONE":"END_IS_MILESTONE",
@@ -270,31 +289,6 @@ function loadI18n() {
 }
 
 
-//-------------------------------------------  Open a black popup for managing resources. This is only an axample of implementation (usually resources come from server) ------------------------------------------------------
-function openResourceEditor() {
-  var editor = $("<div>");
-  editor.append("<h2>Resource editor</h2>");
-  editor.addClass("resEdit");
-
-  for (var i in ge.resources) {
-    var res = ge.resources[i];
-    var inp = $("<input type='text'>").attr("pos", i).addClass("resLine").val(res.name);
-    editor.append(inp).append("<br>");
-  }
-
-  var sv = $("<div>save</div>").css("float", "right").addClass("button").click(function() {
-    $(this).closest(".resEdit").find("input").each(function() {
-      var el = $(this);
-      var pos = el.attr("pos");
-      ge.resources[pos].name = el.val();
-    });
-    ge.editor.redraw();
-    closeBlackPopup();
-  });
-  editor.append(sv);
-
-  var ndo = createBlackPage(800, 500).append(editor);
-}
 
 //-------------------------------------------  Get project file as JSON (used for migrate project from gantt to Teamwork) ------------------------------------------------------
 function getFile() {
@@ -353,6 +347,72 @@ function saveInLocalStorage() {
 }
 
 
+//-------------------------------------------  Open a black popup for managing resources. This is only an axample of implementation (usually resources come from server) ------------------------------------------------------
+
+function editResources(){
+
+  //make resource editor
+  var resourceEditor = $.JST.createFromTemplate({}, "RESOURCE_EDITOR");
+  var resTbl=resourceEditor.find("#resourcesTable");
+
+  for (var i=0;i<ge.resources.length;i++){
+    var res=ge.resources[i];
+    resTbl.append($.JST.createFromTemplate(res, "RESOURCE_ROW"))
+  }
+
+
+  //bind add resource
+  resourceEditor.find("#addResource").click(function(){
+    resTbl.append($.JST.createFromTemplate({id:"new",name:"resource"}, "RESOURCE_ROW"))
+  });
+
+  //bind save event
+  resourceEditor.find("#resSaveButton").click(function(){
+    var newRes=[];
+    //find for deleted res
+    for (var i=0;i<ge.resources.length;i++){
+      var res=ge.resources[i];
+      var row = resourceEditor.find("[resId="+res.id+"]");
+      if (row.size()>0){
+        //if still there save it
+        var name = row.find("input[name]").val();
+        if (name && name!="")
+          res.name=name;
+        newRes.push(res);
+      } else {
+        //remove assignments
+        for (var j=0;j<ge.tasks.length;j++){
+          var task=ge.tasks[j];
+          var newAss=[];
+          for (var k=0;k<task.assigs.length;k++){
+            var ass=task.assigs[k];
+            if (ass.resourceId!=res.id)
+              newAss.push(ass);
+          }
+          task.assigs=newAss;
+        }
+      }
+    }
+
+    //loop on new rows
+    resourceEditor.find("[resId=new]").each(function(){
+      var row = $(this);
+      var name = row.find("input[name]").val();
+      if (name && name!="")
+        newRes.push (new Resource("tmp_"+new Date().getTime(),name));
+    });
+
+    ge.resources=newRes;
+
+    closeBlackPopup();
+    ge.redraw();
+  });
+
+
+  var ndo = createBlackPage(400, 500).append(resourceEditor);
+}
+
+
 </script>
 
 
@@ -377,6 +437,12 @@ function saveInLocalStorage() {
     <button onclick="$('#workSpace').trigger('zoomPlus.gantt');" class="button textual" title="zoom in"><span class="teamworkIcon">(</span></button>
     <span class="ganttButtonSeparator"></span>
     <button onclick="$('#workSpace').trigger('deleteCurrentTask.gantt');" class="button textual" title="delete"><span class="teamworkIcon">&cent;</span></button>
+    <span class="ganttButtonSeparator"></span>
+    <button onclick="print();" class="button textual" title="print"><span class="teamworkIcon">p</span></button>
+    <span class="ganttButtonSeparator"></span>
+    <button onclick="ge.gantt.showCriticalPath=!ge.gantt.showCriticalPath; ge.redraw();" class="button textual" title="Critical Path"><span class="teamworkIcon">&pound;</span></button>
+    <span class="ganttButtonSeparator"></span>
+    <button onclick="editResources();" class="button textual" title="edit resources"><span class="teamworkIcon">M</span></button>
       &nbsp; &nbsp; &nbsp; &nbsp;
       <button onclick="saveGanttOnServer();" class="button first big" title="save">save</button>
     </div></div>
@@ -404,9 +470,12 @@ function saveInLocalStorage() {
   <div class="__template__" type="TASKROW"><!--
   <tr taskId="(#=obj.id#)" class="taskEditRow" level="(#=level#)">
     <th class="gdfCell edit" align="right" style="cursor:pointer;"><span class="taskRowIndex">(#=obj.getRow()+1#)</span> <span class="teamworkIcon" style="font-size:12px;" >e</span></th>
-    <td class="gdfCell" align="center"><div class="taskStatus cvcColorSquare" status="(#=obj.status#)"></div></td>
+    <td class="gdfCell noClip" align="center"><div class="taskStatus cvcColorSquare" status="(#=obj.status#)"></div></td>
     <td class="gdfCell"><input type="text" name="code" value="(#=obj.code?obj.code:''#)"></td>
-    <td class="gdfCell indentCell" style="padding-left:(#=obj.level*10#)px;"><input type="text" name="name" value="(#=obj.name#)" style="(#=obj.level>0?'border-left:2px dotted orange':''#)"></td>
+    <td class="gdfCell indentCell" style="padding-left:(#=obj.level*10#)px;">
+      <div class="(#=obj.isParent()?'exp-controller expcoll exp':'exp-controller'#)" align="center"></div>
+      <input type="text" name="name" value="(#=obj.name#)">
+    </td>
 
     <td class="gdfCell"><input type="text" name="start"  value="" class="date"></td>
     <td class="gdfCell"><input type="text" name="end" value="" class="date"></td>
@@ -419,7 +488,7 @@ function saveInLocalStorage() {
   <div class="__template__" type="TASKEMPTYROW"><!--
   <tr class="taskEditRow emptyRow" >
     <th class="gdfCell" align="right"></th>
-    <td class="gdfCell" align="center"></td>
+    <td class="gdfCell noClip" align="center"></td>
     <td class="gdfCell"></td>
     <td class="gdfCell"></td>
     <td class="gdfCell"></td>
@@ -431,7 +500,7 @@ function saveInLocalStorage() {
   --></div>
 
   <div class="__template__" type="TASKBAR"><!--
-  <div class="taskBox" taskId="(#=obj.id#)" >
+  <div class="taskBox taskBoxDiv" taskId="(#=obj.id#)" >
     <div class="layout (#=obj.hasExternalDep?'extDep':''#)">
       <div class="taskStatus" status="(#=obj.status#)"></div>
       <div class="taskProgress" style="width:(#=obj.progress>100?100:obj.progress#)%; background-color:(#=obj.progress>100?'red':'rgb(153,255,51);'#);"></div>
@@ -442,7 +511,6 @@ function saveInLocalStorage() {
     </div>
   </div>
   --></div>
-
 
   <div class="__template__" type="CHANGE_STATUS"><!--
     <div class="taskStatusBox">
@@ -491,7 +559,7 @@ function saveInLocalStorage() {
     </tr>
     </table>
 
-    <h2>assignments</h2>
+  <h2>assignments</h2>
   <table  cellspacing="1" cellpadding="0" width="100%" id="assigsTable">
     <tr>
       <th style="width:100px;">name</th>
@@ -514,6 +582,31 @@ function saveInLocalStorage() {
     <td align="center"><span class="teamworkIcon delAssig" style="cursor: pointer">d</span></td>
   </tr>
   --></div>
+
+
+  <div class="__template__" type="RESOURCE_EDITOR"><!--
+  <div class="resourceEditor" style="padding: 5px;">
+
+    <h2>Project team</h2>
+    <table  cellspacing="1" cellpadding="0" width="100%" id="resourcesTable">
+      <tr>
+        <th style="width:100px;">name</th>
+        <th style="width:30px;" id="addResource"><span class="teamworkIcon" style="cursor: pointer">+</span></th>
+      </tr>
+    </table>
+
+    <div style="text-align: right; padding-top: 20px"><button id="resSaveButton" class="button big">save</button></div>
+  </div>
+  --></div>
+
+
+  <div class="__template__" type="RESOURCE_ROW"><!--
+  <tr resId="(#=obj.id#)" class="resRow" >
+    <td ><input type="text" name="name" value="(#=obj.name#)" style="width:100%;" class="formElements"></td>
+    <td align="center"><span class="teamworkIcon delRes" style="cursor: pointer">d</span></td>
+  </tr>
+  --></div>
+
 
 </div>
 <script type="text/javascript">
@@ -540,7 +633,7 @@ function saveInLocalStorage() {
       roleEl.append(optr);
     }
 
-    if (taskAssig.task.master.canWrite) {
+    if(taskAssig.task.master.canWrite && taskAssig.task.canWrite){
       assigTr.find(".delAssig").click(function() {
         var tr = $(this).closest("[assigId]").fadeOut(200, function() {
           $(this).remove();

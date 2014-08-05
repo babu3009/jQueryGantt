@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2012-2013 Open Lab
+  Copyright (c) 2012-2014 Open Lab
   Written by Roberto Bicchierai and Silvia Chelazzi http://roberto.open-lab.com
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
@@ -27,9 +27,9 @@ function Ganttalendar(zoom, startmillis, endMillis, master, minGanttSize) {
   this.zoom = zoom;
   this.minGanttSize = minGanttSize;
   this.includeToday=true; //when true today is always visible. If false boundaries comes from tasks periods
+  this.showCriticalPath=false; //when true critical path is highlighted
 
-  //this.zoomLevels = ["d","w","m","q","s","y"];
-  this.zoomLevels = ["w","m","q","s","y"];
+  this.zoomLevels = ["d","w", "m", "q", "s", "y"];
 
   this.element = this.create(zoom, startmillis, endMillis);
 
@@ -67,6 +67,10 @@ Ganttalendar.prototype.create = function(zoom, originalStartmillis, originalEndM
     if (zoomLevel == "d") {
       start.setHours(0, 0, 0, 0);
       end.setHours(23, 59, 59, 999);
+
+      start.setFirstDayOfThisWeek();
+      end.setFirstDayOfThisWeek();
+      end.setDate(end.getDate() + 6);
 
       //reset day of week
     } else if (zoomLevel == "w") {
@@ -226,28 +230,30 @@ Ganttalendar.prototype.create = function(zoom, originalStartmillis, originalEndM
 
       //week
     } else if (zoom == "w") {
-      computedTableWidth = Math.floor(((endPeriod - startPeriod) / (3600000 * 24)) * 30); //1 day= 30px
+      computedTableWidth = Math.floor(((endPeriod - startPeriod) / (3600000 * 24)) * 40); //1 day= 40px
       iterate(function(date) {
         var end = new Date(date.getTime());
         end.setDate(end.getDate() + 6);
         tr1.append(createHeadCell(date.format("MMM d") + " - " + end.format("MMM d'yy"), 7));
         date.setDate(date.getDate() + 7);
       }, function(date) {
-        tr2.append(createHeadCell(date.format("EEEE").substr(0, 1), 1, isHoliday(date) ? "holyH" : null,30));
+        tr2.append(createHeadCell(date.format("EEEE").substr(0, 1), 1, isHoliday(date) ? "holyH" : null, 40));
         trBody.append(createBodyCell(1, date.getDay() % 7 == (self.master.firstDayOfWeek + 6) % 7, isHoliday(date) ? "holy" : null));
         date.setDate(date.getDate() + 1);
       });
 
       //days
     } else if (zoom == "d") {
-      computedTableWidth = Math.floor(((endPeriod - startPeriod) / (3600000 * 24)) * 200); //1 day= 200px
+      computedTableWidth = Math.floor(((endPeriod - startPeriod) / (3600000 * 24)) * 100); //1 day= 100px
       iterate(function(date) {
-        tr1.append(createHeadCell(date.format("EEEE d MMMM yyyy"), 4, isHoliday(date) ? "holyH" : null));
+        var end = new Date(date.getTime());
+        end.setDate(end.getDate() + 6);
+        tr1.append(createHeadCell(date.format("MMMM d") + " - " + end.format("MMMM d yyyy"), 7));
+        date.setDate(date.getDate() + 7);
+      }, function (date) {
+        tr2.append(createHeadCell(date.format("EEE d"), 1, isHoliday(date) ? "holyH" : null, 100));
+        trBody.append(createBodyCell(1, date.getDay() % 7 == (self.master.firstDayOfWeek + 6) % 7, isHoliday(date) ? "holy" : null));
         date.setDate(date.getDate() + 1);
-      }, function(date) {
-        tr2.append(createHeadCell(date.format("HH"), 1, isHoliday(date) ? "holyH" : null),200);
-        trBody.append(createBodyCell(1, date.getHours() > 17, isHoliday(date) ? "holy" : null));
-        date.setHours(date.getHours() + 6);
       });
 
     } else {
@@ -282,7 +288,6 @@ Ganttalendar.prototype.create = function(zoom, originalStartmillis, originalEndM
     var links = $("<div>");
     links.addClass("ganttLinks").css({position:"absolute",top:0,width:computedTableWidth,height:"100%"});
     box.append(links);
-
 
     //compute scalefactor fx
     self.fx = computedTableWidth / (endPeriod - startPeriod);
@@ -320,19 +325,18 @@ Ganttalendar.prototype.create = function(zoom, originalStartmillis, originalEndM
 };
 
 
+
 //<%-------------------------------------- GANT TASK GRAPHIC ELEMENT --------------------------------------%>
 Ganttalendar.prototype.drawTask = function (task) {
-
-  var initialOffset = 40;
-  var elementOffset = 30;
-  
   //console.debug("drawTask", task.name,new Date(task.start));
-  var self = this;
+
   //var prof = new Profiler("ganttDrawTask");
-  //var editorRow = self.master.editor.element.find("tr[taskId=" + task.id + "]");
+  var self = this;
   editorRow = task.rowElement;
-  var top = self.master.editor.element.parent().scrollTop() + initialOffset + (elementOffset * editorRow.index());
+  var top = editorRow.position().top+ editorRow.offsetParent().scrollTop();
+
   var x = Math.round((task.start - self.startMillis) * self.fx);
+
   var taskBox = $.JST.createFromTemplate(task, "TASKBAR");
 
 
@@ -344,10 +348,9 @@ Ganttalendar.prototype.drawTask = function (task) {
   if (task.isParent())
     taskBox.addClass("hasChild");
 
-
   taskBox.css({top:top,left:x,width:Math.round((task.end - task.start) * self.fx)});
 
-  if (this.master.canWrite) {
+  if (this.master.canWrite && task.canWrite) {
     taskBox.resizable({
       handles: 'e' + ( task.depends ? "" : ",w"), //if depends cannot move start
       //helper: "ui-resizable-helper",
@@ -371,21 +374,20 @@ Ganttalendar.prototype.drawTask = function (task) {
       }
 
     }).on("mouseup",function(){
-      $(":focus").blur(); // in order to save grid field when moving task
-    });
-
+        $(":focus").blur(); // in order to save grid field when moving task
+      });
   }
 
   taskBox.dblclick(function() {
     self.master.showTaskEditor($(this).closest("[taskId]").attr("taskId"));
 
   }).mousedown(function() {
-    var task = self.master.getTask($(this).attr("taskId"));
-    task.rowElement.click();
-  });
+      var task = self.master.getTask($(this).attr("taskId"));
+      task.rowElement.click();
+    });
 
-  //panning only in no depends
-  if (!task.depends && this.master.canWrite) {
+  //panning only if no depends
+  if (!task.depends && this.master.canWrite && task.canWrite) {
 
     taskBox.css("position", "absolute").draggable({
       axis:'x',
@@ -401,10 +403,10 @@ Ganttalendar.prototype.drawTask = function (task) {
         self.master.moveTask(task, new Date(s));
         self.master.endTransaction();
       }/*,
-      start:function(event, ui) {
-        var task = self.master.getTask($(this).attr("taskId"));
-        var s = Math.round((ui.position.left / self.fx) + self.startMillis);
-      }*/
+       start:function(event, ui) {
+       var task = self.master.getTask($(this).attr("taskId"));
+       var s = Math.round((ui.position.left / self.fx) + self.startMillis);
+       }*/
     });
   }
 
@@ -565,7 +567,7 @@ Ganttalendar.prototype.drawLink = function (from, to, type) {
     }
 
     //arrow
-    var arr = $("<img src='linkArrow.png'>").css({
+    var arr = $("<img src='res/linkArrow.png'>").css({
       position: 'absolute',
       top: rectTo.top + rectTo.height / 2 - 5,
       left: rectTo.left - 5
@@ -664,7 +666,7 @@ Ganttalendar.prototype.drawLink = function (from, to, type) {
     }
 
     //arrow
-    var arr = $("<img src='linkArrow.png'>").css({
+    var arr = $("<img src='res/linkArrow.png'>").css({
       position: 'absolute',
       top: rectTo.top + rectTo.height / 2 - 5,
       left: rectTo.left - 5
@@ -690,7 +692,6 @@ Ganttalendar.prototype.drawLink = function (from, to, type) {
   }
 };
 
-
 Ganttalendar.prototype.redrawLinks = function() {
   //console.debug("redrawLinks ");
   var self = this;
@@ -698,8 +699,12 @@ Ganttalendar.prototype.redrawLinks = function() {
   this.element.oneTime(60, "ganttlnksredr", function() {
     //var prof=new Profiler("gd_drawLink_real");
     self.element.find(".ganttLinks").empty();
+
+    //[expand]
+    var collapsedDescendant = self.master.getCollapsedDescendant();        
     for (var i=0;i<self.master.links.length;i++) {
       var link = self.master.links[i];
+      if(collapsedDescendant.indexOf(link.from) >= 0 || collapsedDescendant.indexOf(link.to) >= 0) continue;      
       self.drawLink(link.from, link.to);
     }
     //prof.stop();
@@ -713,9 +718,12 @@ Ganttalendar.prototype.reset = function() {
 };
 
 
-Ganttalendar.prototype.redrawTasks = function() {
+Ganttalendar.prototype.redrawTasks = function() {  
+  //[expand]
+  var collapsedDescendant = this.master.getCollapsedDescendant();  
   for (var i=0;i<this.master.tasks.length;i++) {
     var task = this.master.tasks[i];
+    if(collapsedDescendant.indexOf(task) >= 0) continue;    
     this.drawTask(task);
   }
 };
@@ -740,21 +748,31 @@ Ganttalendar.prototype.refreshGantt = function() {
   par.append(domEl);
   this.redrawTasks();
 
+  //set current task
+  this.synchHighlight();
+
   //set old scroll  
   //console.debug("old scroll:",scrollX,scrollY)
   par.scrollTop(scrollY);
   par.scrollLeft(scrollX);
 
-  //set current task
-  if (this.master.currentTask) {
-    this.highlightBar.css("top", this.master.currentTask.ganttElement.position().top);
+  if (this.showCriticalPath){
+    this.master.computeCriticalPath();
+    this.gantt.showCriticalPath();
   }
+
+
 };
 
 
 Ganttalendar.prototype.fitGantt = function() {
   delete this.zoom;
   this.refreshGantt();
+};
+
+Ganttalendar.prototype.synchHighlight = function() {
+  if (this.master.currentTask && this.master.currentTask.ganttElement)
+    this.highlightBar.css("top", this.master.currentTask.ganttElement.css("top"));
 };
 
 Ganttalendar.prototype.centerOnToday = function() {
@@ -764,4 +782,8 @@ Ganttalendar.prototype.centerOnToday = function() {
 };
 
 
+Ganttalendar.prototype.showCriticalPath = function () {
+  //todo
+  console.error("To be implemented");
+};
 

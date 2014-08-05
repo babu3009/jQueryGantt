@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2012-2013 Open Lab
+  Copyright (c) 2012-2014 Open Lab
   Written by Roberto Bicchierai and Silvia Chelazzi http://roberto.open-lab.com
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
@@ -30,31 +30,34 @@ function TaskFactory() {
   /**
    * Build a new Task
    */
-  this.build = function(id, name, code, level, start, duration) {
+  this.build = function(id, name, code, level, start, duration, collapsed) {
     // Set at beginning of day
     var adjusted_start = computeStart(start);
     var calculated_end = computeEndByDuration(adjusted_start, duration);
 
-    return new Task(id, name, code, level, adjusted_start, calculated_end, duration);
+    return new Task(id, name, code, level, adjusted_start, calculated_end, duration, collapsed);
   };
 
 }
 
-function Task(id, name, code, level, start, end, duration) {
+function Task(id, name, code, level, start, end, duration, collapsed) {
   this.id = id;
   this.name = name;
+  this.progress=0;
+  this.description = "";
   this.code = code;
   this.level = level;
   this.status = "STATUS_UNDEFINED";
+  this.depends="";
+  this.canWrite=true; // by default all tasks are writeable
 
   this.start = start
   this.duration = duration;
   this.end = end;
-
   this.startIsMilestone = false;
   this.endIsMilestone = false;
 
-  this.collapsed = false;
+  this.collapsed = collapsed;
   
   this.rowElement; //row editor html element
   this.ganttElement; //gantt html element
@@ -149,13 +152,13 @@ Task.prototype.setPeriod = function (start, end) {
 
   //set end
   var wantedEndMillis = end;
-
   end = computeEnd(end);
 
   if (this.end != end || this.end != wantedEndMillis) {
     this.end = end;
     somethingChanged = true;
   }
+
 
   this.duration = recomputeDuration(this.start, this.end);
 
@@ -164,6 +167,12 @@ Task.prototype.setPeriod = function (start, end) {
   //nothing changed exit
   if (!somethingChanged)
     return true;
+
+  //cannot write exit
+  if(!this.canWrite){
+    this.master.setErrorOnTransaction(GanttMaster.messages["CANNOT_WRITE"] + "\n" + this.name, this);
+    return false;
+  }
 
   //external dependencies: exit with error
   if (this.hasExternalDep) {
@@ -226,6 +235,10 @@ Task.prototype.setPeriod = function (start, end) {
     if (infs && infs.length > 0) {
       for (var i=0;i<infs.length;i++) {
         var link = infs[i];
+        if (!link.to.canWrite){
+          this.master.setErrorOnTransaction(GanttMaster.messages["CANNOT_WRITE"] + "\n" + link.to.name, link.to);
+          break;
+        }
         todoOk = link.to.moveTo(end, false); //this is not the right date but moveTo checks start
         if (!todoOk)
           break;
@@ -323,8 +336,11 @@ Task.prototype.moveTo = function (start, ignoreMilestones) {
       for (var i=0;i<infs.length;i++) {
         var link = infs[i];
 
+
         //this is not the right date but moveTo checks start
-        if (!link.to.moveTo(end, false)) {
+        if (!link.to.canWrite ) {
+          this.master.setErrorOnTransaction(GanttMaster.messages["CANNOT_WRITE"]+ "\n"+link.to.name, link.to);
+        } else if (!link.to.moveTo(end, false)) {
           return false;
         }
       }
@@ -346,7 +362,6 @@ function updateTree(task) {
   //no parent:exit
   if (!p)
     return true;
-
 
   var newStart = p.start;
   var newEnd = p.end;
@@ -374,6 +389,13 @@ function updateTree(task) {
 
   //propagate updates if needed
   if (newStart != p.start || newEnd != p.end) {
+
+    //can write?
+    if (!p.canWrite){
+      task.master.setErrorOnTransaction(GanttMaster.messages["CANNOT_WRITE"] + "\n" + p.name, task);
+      return false;
+    }
+
     //has external deps ?
     if (p.hasExternalDep) {
       task.master.setErrorOnTransaction(GanttMaster.messages["TASK_HAS_EXTERNAL_DEPS"] + "\n" + p.name, task);
@@ -394,6 +416,7 @@ Task.prototype.changeStatus = function(newStatus) {
   var cone = this.getDescendant();
 
   function propagateStatus(task, newStatus, manuallyChanged, propagateFromParent, propagateFromChildren) {
+    //console.debug("propagateStatus",task.name, task.status,newStatus)
     var oldStatus = task.status;
 
     //no changes exit
@@ -671,6 +694,14 @@ Task.prototype.getSuperiors = function() {
   return ret;
 };
 
+Task.prototype.getSuperiorTasks = function() {
+  var ret=[];
+  var sups = this.getSuperiors();
+  for (var i=0;i<sups.length;i++)
+    ret.push(sups[i].from);
+  return ret;
+};
+
 
 Task.prototype.getInferiors = function() {
   var ret = [];
@@ -683,8 +714,15 @@ Task.prototype.getInferiors = function() {
   return ret;
 };
 
+Task.prototype.getInferiorTasks = function() {
+  var ret=[];
+  var infs = this.getInferiors();
+  for (var i=0;i<infs.length;i++)
+    ret.push(infs[i].to);
+  return ret;
+};
 
-Task.prototype.deleteTask = function() {
+  Task.prototype.deleteTask = function() {
   //delete both dom elements
   this.rowElement.remove();
   this.ganttElement.remove();
@@ -716,6 +754,33 @@ Task.prototype.deleteTask = function() {
 Task.prototype.isNew=function(){
   return (this.id+"").indexOf("tmp_")==0;
 };
+
+Task.prototype.isDependent=function(t) {
+  //console.debug("isDependent",this.name, t.name)
+  var task=this;
+  var dep= this.master.links.filter(function(link) {
+    return link.from == task ;
+  });
+
+  // is t a direct dependency?
+  for (var i=0;i<dep.length;i++) {
+    if (dep[i].to== t)
+      return true;
+  }
+  // is t an indirect dependency
+  for (var i=0;i<dep.length;i++) {
+    if (dep[i].to.isDependent(t)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+Task.prototype.setLatest=function(maxCost) {
+  this.latestStart = maxCost - this.criticalCost;
+  this.latestFinish = this.latestStart + this.duration;
+};
+
 
 //<%------------------------------------------  INDENT/OUTDENT --------------------------------%>
 Task.prototype.indent = function() {
@@ -755,7 +820,8 @@ Task.prototype.indent = function() {
     }
 
     var parent = this.getParent();
-    if(parent && this.start < parent.start && parent.depends && !this.depends){
+    // set start date to parent' start if no deps
+    if(parent && !this.depends){
     	var new_end = computeEndByDuration(parent.start, this.duration);
     	this.master.changeTaskDates(this, parent.start, new_end);
     }
